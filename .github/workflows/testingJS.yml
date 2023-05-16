@@ -1,0 +1,28 @@
+name: 'Check comment'
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  custom-action-try:
+    name: Check comment with custom action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Pull Request Information
+        id: pr
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Last Commit Message
+        id: last_commit
+        run: |
+          LAST_COMMIT_MESSAGE=$(echo '${{ steps.pr.outputs.data }}' | node -e "const commits = JSON.parse(require('fs').readFileSync('/dev/stdin').toString()); console.log(commits[commits.length - 1].commit.message);")
+          echo "name=last_commit_message::$LAST_COMMIT_MESSAGE"  >> $GITHUB_OUTPUT
+      - name: check message
+        uses: alezhuu/check-message-action@main
+        with:
+          pull_info: ${{ steps.last_commit.outputs.last_commit_message }}
